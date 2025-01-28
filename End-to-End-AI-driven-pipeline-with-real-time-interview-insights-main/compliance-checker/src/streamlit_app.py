@@ -65,7 +65,7 @@ def upload_data():
     return None
 
 def main():
-    st.title("Contract Analysis System with Permanent Database")
+    st.title("Contract Analysis System")
     st.sidebar.header("Navigation")
     options = st.sidebar.radio("Select a page:", ["Home", "Data Upload", "Database", "About"])
 
