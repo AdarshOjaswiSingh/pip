@@ -1,17 +1,22 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import os
 from PyPDF2 import PdfReader
 from docx import Document
-import os
 
 DB_PATH = "End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx"
 
 def load_database():
-    if os.path.exists(DB_PATH):
-        return pd.read_excel(DB_PATH)
-    else:
-        st.error("Database file not found! Please ensure the file exists.")
+    try:
+        if os.path.exists(DB_PATH):
+            return pd.read_excel(DB_PATH)
+        else:
+            st.warning("Database not found! Initializing a new database.")
+            empty_df = pd.DataFrame(columns=["Column1", "Column2", "Column3"])  # Customize as needed
+            save_database(empty_df)
+            return empty_df
+    except Exception as e:
+        st.error(f"Failed to load database: {e}")
         return pd.DataFrame()
 
 def save_database(data):
@@ -19,42 +24,45 @@ def save_database(data):
         data.to_excel(DB_PATH, index=False)
         st.success("Database updated successfully!")
     except Exception as e:
-        st.error(f"Error saving the database: {e}")
+        st.error(f"Failed to save the database: {e}")
+
+def extract_pdf_text(file):
+    try:
+        reader = PdfReader(file)
+        return ''.join([page.extract_text() for page in reader.pages])
+    except Exception as e:
+        st.error(f"Error reading PDF: {e}")
+        return ""
+
+def extract_word_text(file):
+    try:
+        doc = Document(file)
+        return '\n'.join([para.text for para in doc.paragraphs])
+    except Exception as e:
+        st.error(f"Error reading Word document: {e}")
+        return ""
 
 def upload_data():
     uploaded_file = st.file_uploader("Upload a file (CSV, PDF, or DOCX)", type=["csv", "pdf", "docx"])
-    
-    if uploaded_file is not None:
-        file_type = uploaded_file.type
+    if uploaded_file:
         try:
-            if file_type == "text/csv":
+            if uploaded_file.type == "text/csv":
                 data = pd.read_csv(uploaded_file)
-                st.write("Preview of the uploaded data:")
                 st.dataframe(data)
                 return data
-            elif file_type == "application/pdf":
+            elif uploaded_file.type == "application/pdf":
                 text = extract_pdf_text(uploaded_file)
-                st.write("PDF Content:")
                 st.text_area("PDF Content", text, height=300)
                 return text
-            elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
                 text = extract_word_text(uploaded_file)
-                st.write("Word Document Content:")
                 st.text_area("Word Content", text, height=300)
                 return text
             else:
                 st.error("Unsupported file type!")
         except Exception as e:
-            st.error(f"Error reading the file: {e}")
+            st.error(f"Error processing file: {e}")
     return None
-
-def extract_pdf_text(uploaded_file):
-    reader = PdfReader(uploaded_file)
-    return ''.join([page.extract_text() for page in reader.pages])
-
-def extract_word_text(uploaded_file):
-    doc = Document(uploaded_file)
-    return '\n'.join([para.text for para in doc.paragraphs])
 
 def main():
     st.title("Contract Analysis System with Permanent Database")
@@ -75,7 +83,6 @@ def main():
     elif options == "Database":
         st.header("Permanent Database")
         database = load_database()
-        st.write("Current Database:")
         st.dataframe(database)
 
         if st.button("Save Uploaded Data to Database"):
