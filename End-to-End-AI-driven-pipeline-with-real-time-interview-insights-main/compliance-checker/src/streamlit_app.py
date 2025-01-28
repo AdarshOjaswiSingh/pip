@@ -1,61 +1,84 @@
 import streamlit as st
 import pandas as pd
-from io import StringIO
+import matplotlib.pyplot as plt
 from PyPDF2 import PdfReader
 from docx import Document
 
-def process_csv(uploaded_file):
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.write("CSV file loaded successfully!")
-        st.dataframe(df)
-    except Exception as e:
-        st.error(f"Error reading CSV file: {e}")
+def upload_data():
+    uploaded_file = st.file_uploader("Upload a file (CSV, PDF, or DOCX)", type=["csv", "pdf", "docx"])
+    
+    if uploaded_file is not None:
+        file_type = uploaded_file.type
+        if file_type == "text/csv":
+            data = pd.read_csv(uploaded_file)
+            st.write("Preview of the uploaded data:")
+            st.dataframe(data)
+            return data
+        elif file_type == "application/pdf":
+            text = extract_pdf_text(uploaded_file)
+            st.write("PDF Content:")
+            st.text_area("PDF Content", text, height=300)
+            return text
+        elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            text = extract_word_text(uploaded_file)
+            st.write("Word Document Content:")
+            st.text_area("Word Content", text, height=300)
+            return text
+        else:
+            st.error("Unsupported file type!")
+    return None
 
-def process_pdf(uploaded_file):
-    try:
-        pdf_reader = PdfReader(uploaded_file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-        st.write("PDF file loaded successfully!")
-        st.text_area("PDF Content", text, height=300)
-    except Exception as e:
-        st.error(f"Error reading PDF file: {e}")
+def extract_pdf_text(uploaded_file):
+    reader = PdfReader(uploaded_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
 
-def process_word(uploaded_file):
-    try:
-        doc = Document(uploaded_file)
-        text = ""
-        for para in doc.paragraphs:
-            text += para.text + "\n"
-        st.write("Word document loaded successfully!")
-        st.text_area("Word Content", text, height=300)
-    except Exception as e:
-        st.error(f"Error reading Word file: {e}")
+def extract_word_text(uploaded_file):
+    doc = Document(uploaded_file)
+    text = ""
+    for para in doc.paragraphs:
+        text += para.text + "\n"
+    return text
+
+def create_visualization(data):
+    if isinstance(data, pd.DataFrame):
+        column = st.selectbox("Select a column to visualize:", data.columns)
+        st.write(f"Histogram for {column}:")
+        fig, ax = plt.subplots()
+        data[column].hist(ax=ax, bins=10)
+        st.pyplot(fig)
+    else:
+        st.warning("Visualizations are only available for CSV data.")
 
 def main():
-    st.title("File Upload and Data Processing App")
-
-    options = st.sidebar.selectbox("Choose an option", ["Home", "Data Upload"])
+    st.title("Infosys Project Dashboard")
+    st.sidebar.header("Navigation")
+    options = st.sidebar.radio("Select a page:", ["Home", "Data Upload", "Visualizations", "About"])
 
     if options == "Home":
-        st.header("Welcome to the File Upload and Data Processing App")
+        st.header("Welcome to the Infosys Project Dashboard")
+        st.write("This app is designed to showcase the key features and outputs of your project.")
+        st.write("Use the sidebar to navigate through the app.")
 
     elif options == "Data Upload":
         st.header("Upload Your Dataset")
-        uploaded_file = st.file_uploader("Upload a file", type=["csv", "pdf", "docx", "doc"])
+        data = upload_data()
+        if data is not None:
+            st.session_state.data = data
 
-        if uploaded_file is not None:
-            file_type = uploaded_file.type
-            if file_type == "application/pdf":
-                process_pdf(uploaded_file)
-            elif file_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
-                process_word(uploaded_file)
-            elif file_type == "text/csv":
-                process_csv(uploaded_file)
-            else:
-                st.write("Unsupported file type!")
+    elif options == "Visualizations":
+        st.header("Data Visualizations")
+        if 'data' in st.session_state and isinstance(st.session_state.data, pd.DataFrame):
+            create_visualization(st.session_state.data)
+        else:
+            st.write("Upload a dataset first to visualize data.")
+
+    elif options == "About":
+        st.header("About This App")
+        st.write("This app was created to demonstrate the capabilities of Streamlit for interactive dashboards.")
+        st.write("Author: Adarsh Ojaswi Singh")
 
 if __name__ == "__main__":
     main()
