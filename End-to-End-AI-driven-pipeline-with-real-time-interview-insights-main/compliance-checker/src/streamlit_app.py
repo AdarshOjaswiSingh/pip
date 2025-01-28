@@ -1,44 +1,61 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+from io import StringIO
+from PyPDF2 import PdfReader
+from docx import Document
 
-# Set the title of the app
-st.title("Infosys Project Dashboard")
+def process_csv(uploaded_file):
+    try:
+        df = pd.read_csv(uploaded_file)
+        st.write("CSV file loaded successfully!")
+        st.dataframe(df)
+    except Exception as e:
+        st.error(f"Error reading CSV file: {e}")
 
-# Sidebar for user navigation
-st.sidebar.header("Navigation")
-options = st.sidebar.radio("Select a page:", ["Home", "Data Upload", "Visualizations", "About"])
+def process_pdf(uploaded_file):
+    try:
+        pdf_reader = PdfReader(uploaded_file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+        st.write("PDF file loaded successfully!")
+        st.text_area("PDF Content", text, height=300)
+    except Exception as e:
+        st.error(f"Error reading PDF file: {e}")
 
-if options == "Home":
-    st.header("Welcome to the Infosys Project Dashboard")
-    st.write("This app is designed to showcase the key features and outputs of your project.")
-    st.write("Use the sidebar to navigate through the app.")
+def process_word(uploaded_file):
+    try:
+        doc = Document(uploaded_file)
+        text = ""
+        for para in doc.paragraphs:
+            text += para.text + "\n"
+        st.write("Word document loaded successfully!")
+        st.text_area("Word Content", text, height=300)
+    except Exception as e:
+        st.error(f"Error reading Word file: {e}")
 
-elif options == "Data Upload":
-    st.header("Upload Your Dataset")
-    uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+def main():
+    st.title("File Upload and Data Processing App")
 
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
-        st.write("Preview of the uploaded data:")
-        st.dataframe(data)
+    options = st.sidebar.selectbox("Choose an option", ["Home", "Data Upload"])
 
-elif options == "Visualizations":
-    st.header("Data Visualizations")
-    st.write("Upload a dataset first to visualize data.")
+    if options == "Home":
+        st.header("Welcome to the File Upload and Data Processing App")
 
-    if 'data' in locals() or 'data' in globals():
-        column = st.selectbox("Select a column to visualize:", data.columns)
+    elif options == "Data Upload":
+        st.header("Upload Your Dataset")
+        uploaded_file = st.file_uploader("Upload a file", type=["csv", "pdf", "docx", "doc"])
 
-        # Plot histogram
-        st.write(f"Histogram for {column}:")
-        fig, ax = plt.subplots()
-        data[column].hist(ax=ax, bins=10)
-        st.pyplot(fig)
-    else:
-        st.warning("No data uploaded. Please upload a dataset in the 'Data Upload' section.")
+        if uploaded_file is not None:
+            file_type = uploaded_file.type
+            if file_type == "application/pdf":
+                process_pdf(uploaded_file)
+            elif file_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
+                process_word(uploaded_file)
+            elif file_type == "text/csv":
+                process_csv(uploaded_file)
+            else:
+                st.write("Unsupported file type!")
 
-elif options == "About":
-    st.header("About This App")
-    st.write("This app was created to demonstrate the capabilities of Streamlit for interactive dashboards.")
-    st.write("Author: Adarsh Ojaswi Singh")
+if __name__ == "__main__":
+    main()
