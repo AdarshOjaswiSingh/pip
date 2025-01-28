@@ -10,3 +10,4 @@ flask
 fastapi
 pydantic
 python-dotenv
+PyPDF2
