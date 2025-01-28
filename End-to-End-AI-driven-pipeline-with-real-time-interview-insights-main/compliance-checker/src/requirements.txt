@@ -12,3 +12,4 @@ pydantic
 python-dotenv
 PyPDF2
 python-docx
+openpyxl
