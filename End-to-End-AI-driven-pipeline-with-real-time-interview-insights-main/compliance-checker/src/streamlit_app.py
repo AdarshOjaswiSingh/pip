@@ -77,7 +77,7 @@ def main():
 
     elif options == "About":
         st.header("About This App")
-        st.write("This app was created to demonstrate the capabilities of Streamlit for interactive dashboards.")
+        st.write("The End-to-End AI-Driven Recruitment Pipeline streamlines hiring by automating key processes like resume screening, skill assessment, and interview analysis. Using NLP, it delivers real-time insights into candidate communication and expertise, while a cultural fit scoring system evaluates alignment with organizational values. This scalable, AI-powered solution ensures faster, data-driven hiring decisions with improved precision.")
         st.write("Author: Adarsh Ojaswi Singh")
 
 if __name__ == "__main__":
