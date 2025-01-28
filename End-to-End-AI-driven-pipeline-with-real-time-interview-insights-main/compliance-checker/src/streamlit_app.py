@@ -1,20 +1,35 @@
 import streamlit as st
 import pandas as pd
+import os
 from PyPDF2 import PdfReader
 from docx import Document
 
-@st.cache
+DB_PATH = "End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx"
+
 def load_database():
     try:
-        return pd.read_excel("End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx")
+        if os.path.exists(DB_PATH):
+            return pd.read_excel(DB_PATH)
+        else:
+            st.warning("Database not found! Initializing a new database.")
+            empty_df = pd.DataFrame(columns=["Column1", "Column2", "Column3"])  # Customize as needed
+            save_database(empty_df)
+            return empty_df
     except Exception as e:
         st.error(f"Failed to load database: {e}")
         return pd.DataFrame()
 
+def save_database(data):
+    try:
+        data.to_excel(DB_PATH, index=False)
+        st.success("Database updated successfully!")
+    except Exception as e:
+        st.error(f"Failed to save the database: {e}")
+
 def extract_pdf_text(file):
     try:
         reader = PdfReader(file)
-        return ''.join(page.extract_text() for page in reader.pages)
+        return ''.join([page.extract_text() for page in reader.pages])
     except Exception as e:
         st.error(f"Error reading PDF: {e}")
         return ""
@@ -22,59 +37,65 @@ def extract_pdf_text(file):
 def extract_word_text(file):
     try:
         doc = Document(file)
-        return '\n'.join(para.text for para in doc.paragraphs)
+        return '\n'.join([para.text for para in doc.paragraphs])
     except Exception as e:
         st.error(f"Error reading Word document: {e}")
         return ""
 
-def extract_skills(resume_text):
-    skills = {"Python", "Java", "C++", "Machine Learning", "AI", "Data Science", "SQL", "Project Management"}
-    return [skill for skill in skills if skill.lower() in resume_text.lower()]
-
-def generate_interview_questions(skills):
-    database = load_database()
-    if 'Skill' not in database.columns or 'Interview Questions' not in database.columns:
-        st.error("Required columns ('Skill' or 'Interview Questions') are missing in the database.")
-        return []
-    
-    return [q for skill in skills for q in database[database['Skill'].str.contains(skill, case=False, na=False)]['Interview Questions'].tolist()]
-
-def process_resume():
-    uploaded_file = st.file_uploader("Upload Resume (PDF, DOCX)", type=["pdf", "docx"])
+def upload_data():
+    uploaded_file = st.file_uploader("Upload a file (CSV, PDF, or DOCX)", type=["csv", "pdf", "docx"])
     if uploaded_file:
-        resume_text = extract_pdf_text(uploaded_file) if uploaded_file.type == "application/pdf" else extract_word_text(uploaded_file)
-        st.text_area("Resume Text", resume_text, height=300)
-        skills = extract_skills(resume_text)
-        st.write(f"Extracted Skills: {', '.join(skills)}")
-        
-        questions = generate_interview_questions(skills)
-        if questions:
-            st.write("Suggested Interview Questions:")
-            st.write("\n".join(f"- {q}" for q in questions))
-        else:
-            st.warning("No relevant questions found for the extracted skills.")
-
-def evaluate_candidate(answers):
-    required_keywords = {"expert", "strong", "advanced"}
-    score = sum(any(keyword in ans.lower() for keyword in required_keywords) for ans in answers)
-    
-    return "Selected" if score >= 3 else "Rejected"
+        try:
+            if uploaded_file.type == "text/csv":
+                data = pd.read_csv(uploaded_file)
+                st.dataframe(data)
+                return data
+            elif uploaded_file.type == "application/pdf":
+                text = extract_pdf_text(uploaded_file)
+                st.text_area("PDF Content", text, height=300)
+                return text
+            elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                text = extract_word_text(uploaded_file)
+                st.text_area("Word Content", text, height=300)
+                return text
+            else:
+                st.error("Unsupported file type!")
+        except Exception as e:
+            st.error(f"Error processing file: {e}")
+    return None
 
 def main():
-    st.title("Resume Analysis and Interview Question Generation")
-    options = st.sidebar.radio("Select a page:", ["Home", "Resume Analysis"])
+    st.title("Contract Analysis System with Permanent Database")
+    st.sidebar.header("Navigation")
+    options = st.sidebar.radio("Select a page:", ["Home", "Data Upload", "Database", "About"])
 
     if options == "Home":
-        st.header("Welcome to the Resume Analysis App")
-        st.write("This app helps in analyzing resumes and generating interview questions based on skills.")
+        st.header("Welcome to the Infosys Project Dashboard")
+        st.write("This app is designed to showcase the key features and outputs of my project.")
+        st.write("Use the sidebar to navigate through the app.")
 
-    elif options == "Resume Analysis":
-        st.header("Upload and Analyze Resume")
-        process_resume()
-        st.write("After generating interview questions, you can evaluate the answers manually or automatically.")
-        dummy_answers = ["I am an expert in Python.", "I have strong experience in Machine Learning.", "I have advanced SQL skills."]
-        result = evaluate_candidate(dummy_answers)
-        st.write(f"Candidate Evaluation: {result}")
+    elif options == "Data Upload":
+        st.header("Upload New Data")
+        new_data = upload_data()
+        if new_data is not None:
+            st.session_state.new_data = new_data
+
+    elif options == "Database":
+        st.header("Permanent Database")
+        database = load_database()
+        st.dataframe(database)
+
+        if st.button("Save Uploaded Data to Database"):
+            if 'new_data' in st.session_state and isinstance(st.session_state.new_data, pd.DataFrame):
+                updated_database = pd.concat([database, st.session_state.new_data], ignore_index=True)
+                save_database(updated_database)
+            else:
+                st.warning("No new data available to save!")
+
+    elif options == "About":
+        st.header("About This App")
+        st.write("The End-to-End AI-Driven Recruitment Pipeline streamlines hiring by automating key processes like resume screening, skill assessment, and interview analysis. Using NLP, it delivers real-time insights into candidate communication and expertise, while a cultural fit scoring system evaluates alignment with organizational values. This scalable, AI-powered solution ensures faster, data-driven hiring decisions with improved precision.")
+        st.write("Author: Adarsh Ojaswi Singh")
 
 if __name__ == "__main__":
     main()
