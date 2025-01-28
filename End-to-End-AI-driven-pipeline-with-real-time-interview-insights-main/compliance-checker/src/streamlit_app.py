@@ -53,13 +53,13 @@ def create_visualization(data):
         st.warning("Visualizations are only available for CSV data.")
 
 def main():
-    st.title("Infosys Project Dashboard")
+    st.title("Contract Analysis System")
     st.sidebar.header("Navigation")
     options = st.sidebar.radio("Select a page:", ["Home", "Data Upload", "Visualizations", "About"])
 
     if options == "Home":
         st.header("Welcome to the Infosys Project Dashboard")
-        st.write("This app is designed to showcase the key features and outputs of your project.")
+        st.write("This app is designed to showcase the key features and outputs of my project.")
         st.write("Use the sidebar to navigate through the app.")
 
     elif options == "Data Upload":
