@@ -3,13 +3,11 @@ import pandas as pd
 from PyPDF2 import PdfReader
 from docx import Document
 import re
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 def extract_pdf_text(file):
     try:
         reader = PdfReader(file)
-        return ''.join([page.extract_text() for page in reader.pages])
+        return ''.join(page.extract_text() for page in reader.pages)
     except Exception as e:
         st.error(f"Error reading PDF: {e}")
         return ""
@@ -17,40 +15,35 @@ def extract_pdf_text(file):
 def extract_word_text(file):
     try:
         doc = Document(file)
-        return '\n'.join([para.text for para in doc.paragraphs])
+        return '\n'.join(para.text for para in doc.paragraphs)
     except Exception as e:
         st.error(f"Error reading Word document: {e}")
         return ""
 
+@st.cache
 def load_database():
     try:
-        db_path = "End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx"
-        return pd.read_excel(db_path)
+        return pd.read_excel("End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx")
     except Exception as e:
         st.error(f"Failed to load database: {e}")
         return pd.DataFrame()
 
 def extract_skills(resume_text):
-    skills = ["Python", "Java", "C++", "Machine Learning", "AI", "Data Science", "SQL", "Project Management"]
-    extracted_skills = [skill for skill in skills if re.search(r'\b' + skill + r'\b', resume_text, re.IGNORECASE)]
-    return extracted_skills
+    skills = set(["Python", "Java", "C++", "Machine Learning", "AI", "Data Science", "SQL", "Project Management"])
+    return [skill for skill in skills if skill.lower() in resume_text.lower()]
 
 def generate_interview_questions(skills):
     database = load_database()
     questions = []
     for skill in skills:
-        matched_questions = database[database['Skill'] == skill]['Interview Questions'].tolist()
+        matched_questions = database[database['Skill'].str.contains(skill, case=False)]['Interview Questions'].tolist()
         questions.extend(matched_questions)
     return questions
 
 def process_resume():
     uploaded_file = st.file_uploader("Upload Resume (PDF, DOCX)", type=["pdf", "docx"])
     if uploaded_file:
-        if uploaded_file.type == "application/pdf":
-            resume_text = extract_pdf_text(uploaded_file)
-        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-            resume_text = extract_word_text(uploaded_file)
-        
+        resume_text = extract_pdf_text(uploaded_file) if uploaded_file.type == "application/pdf" else extract_word_text(uploaded_file)
         st.text_area("Resume Text", resume_text, height=300)
         skills = extract_skills(resume_text)
         st.write(f"Extracted Skills: {', '.join(skills)}")
@@ -64,13 +57,10 @@ def process_resume():
             st.warning("No relevant questions found for the extracted skills.")
 
 def evaluate_candidate(answers):
-    required_keywords = ["expert", "strong", "advanced"]
-    score = sum(1 for ans in answers if any(keyword in ans.lower() for keyword in required_keywords))
+    required_keywords = {"expert", "strong", "advanced"}
+    score = sum(any(keyword in ans.lower() for keyword in required_keywords) for ans in answers)
     
-    if score >= 3:
-        return "Selected"
-    else:
-        return "Rejected"
+    return "Selected" if score >= 3 else "Rejected"
 
 def main():
     st.title("Resume Analysis and Interview Question Generation")
@@ -91,4 +81,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
