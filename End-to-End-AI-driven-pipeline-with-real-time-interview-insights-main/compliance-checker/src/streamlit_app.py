@@ -2,7 +2,14 @@ import streamlit as st
 import pandas as pd
 from PyPDF2 import PdfReader
 from docx import Document
-import re
+
+@st.cache
+def load_database():
+    try:
+        return pd.read_excel("End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx")
+    except Exception as e:
+        st.error(f"Failed to load database: {e}")
+        return pd.DataFrame()
 
 def extract_pdf_text(file):
     try:
@@ -20,25 +27,17 @@ def extract_word_text(file):
         st.error(f"Error reading Word document: {e}")
         return ""
 
-@st.cache
-def load_database():
-    try:
-        return pd.read_excel("End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx")
-    except Exception as e:
-        st.error(f"Failed to load database: {e}")
-        return pd.DataFrame()
-
 def extract_skills(resume_text):
-    skills = set(["Python", "Java", "C++", "Machine Learning", "AI", "Data Science", "SQL", "Project Management"])
+    skills = {"Python", "Java", "C++", "Machine Learning", "AI", "Data Science", "SQL", "Project Management"}
     return [skill for skill in skills if skill.lower() in resume_text.lower()]
 
 def generate_interview_questions(skills):
     database = load_database()
-    questions = []
-    for skill in skills:
-        matched_questions = database[database['Skill'].str.contains(skill, case=False)]['Interview Questions'].tolist()
-        questions.extend(matched_questions)
-    return questions
+    if 'Skill' not in database.columns or 'Interview Questions' not in database.columns:
+        st.error("Required columns ('Skill' or 'Interview Questions') are missing in the database.")
+        return []
+    
+    return [q for skill in skills for q in database[database['Skill'].str.contains(skill, case=False, na=False)]['Interview Questions'].tolist()]
 
 def process_resume():
     uploaded_file = st.file_uploader("Upload Resume (PDF, DOCX)", type=["pdf", "docx"])
@@ -51,8 +50,7 @@ def process_resume():
         questions = generate_interview_questions(skills)
         if questions:
             st.write("Suggested Interview Questions:")
-            for question in questions:
-                st.write(f"- {question}")
+            st.write("\n".join(f"- {q}" for q in questions))
         else:
             st.warning("No relevant questions found for the extracted skills.")
 
@@ -64,7 +62,6 @@ def evaluate_candidate(answers):
 
 def main():
     st.title("Resume Analysis and Interview Question Generation")
-    st.sidebar.header("Navigation")
     options = st.sidebar.radio("Select a page:", ["Home", "Resume Analysis"])
 
     if options == "Home":
