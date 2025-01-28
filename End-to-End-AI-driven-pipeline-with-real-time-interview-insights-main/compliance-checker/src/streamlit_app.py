@@ -5,7 +5,7 @@ from PyPDF2 import PdfReader
 from docx import Document
 import os
 
-DB_PATH = "database/Adarsh_Generated_Candidate_Data.xlsx"
+DB_PATH = "End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/Adarsh_Generated_Candidate_Data.xlsx"
 
 def load_database():
     if os.path.exists(DB_PATH):
