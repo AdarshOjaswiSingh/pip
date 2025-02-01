@@ -6,7 +6,7 @@ from functools import lru_cache
 
 # Load the dataset from the Excel file
 # Replace 'dataset.xlsx' with the actual file name and path if it's different
-df = pd.read_excel('dataset.xlsx')
+df = pd.read_excel('End-to-End-AI-driven-pipeline-with-real-time-interview-insights-main/compliance-checker/src/dataset')
 
 # Check if the necessary columns ('question' and 'answer') exist in the dataset
 if 'question' not in df.columns or 'answer' not in df.columns:
