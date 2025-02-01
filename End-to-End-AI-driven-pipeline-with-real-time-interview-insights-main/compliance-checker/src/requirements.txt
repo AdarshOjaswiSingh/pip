@@ -14,3 +14,7 @@ PyPDF2
 python-docx
 openpyxl
 touch requirements.txt
+pandas
+scikit-learn
+numpy
+
